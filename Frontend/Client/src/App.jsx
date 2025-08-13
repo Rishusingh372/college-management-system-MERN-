@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register.jsx";
-import StudentDashboard from "./pages/Dashboard/StudentDashboard";
-import FacultyDashboard from "./pages/Dashboard/FacultyDashboard";
+import StudentDashboard from "./pages/Auth/Dashboard/StudentDashboard.jsx";
+import FacultyDashboard from "./pages/Auth/Dashboard/FacultyDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
