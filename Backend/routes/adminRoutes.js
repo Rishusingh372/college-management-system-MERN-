@@ -1,56 +1,135 @@
+// backend/routes/adminRoutes.js
 const express = require("express");
+const bcrypt = require("bcryptjs");
+const auth = require("../middleware/authMiddleware");
+const User = require("../models/User");
 const Student = require("../models/Student");
 const Teacher = require("../models/Teacher");
-const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// CRUD for Students
-router.post("/students", authMiddleware(["admin"]), async (req, res) => {
+/**
+ * Helpers
+ */
+const ensureUser = async ({ username, password, role }) => {
+  // Creates/updates a User with given username|role. If password is provided, (re)hash it
+  let user = await User.findOne({ username, role });
+  const toSet = { role, username };
+  if (password) {
+    const hash = await bcrypt.hash(password, 10);
+    toSet.password = hash;
+  }
+  if (!user) user = await User.create(toSet);
+  else if (password) {
+    user.password = toSet.password;
+    await user.save();
+  }
+  return user;
+};
+
+/**
+ * STUDENTS
+ */
+router.get("/students", auth(["admin"]), async (_req, res) => {
+  const list = await Student.find();
+  return res.json(list);
+});
+
+router.post("/students", auth(["admin"]), async (req, res) => {
   try {
-    const student = new Student(req.body);
-    await student.save();
-    res.json(student);
-  } catch (err) {
-    res.status(500).json({ msg: err.message });
+    const { name, rollNumber, course, username, password, feeStatus = "unpaid" } = req.body;
+
+    // Create/ensure auth user (optional but handy)
+    const user = await ensureUser({ username, password, role: "student" });
+
+    const created = await Student.create({
+      name,
+      rollNumber,
+      course,
+      feeStatus,
+      attendance: 0,
+      marks: [],
+      userId: user._id,
+    });
+
+    return res.json(created);
+  } catch (e) {
+    return res.status(500).json({ message: e.message });
   }
 });
 
-router.get("/students", authMiddleware(["admin"]), async (req, res) => {
-  const students = await Student.find();
-  res.json(students);
+router.put("/students/:id", auth(["admin"]), async (req, res) => {
+  try {
+    const updated = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ message: "Student not found" });
+    return res.json(updated);
+  } catch (e) {
+    return res.status(500).json({ message: e.message });
+  }
 });
 
-router.put("/students/:id", authMiddleware(["admin"]), async (req, res) => {
-  const updated = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  res.json(updated);
+router.delete("/students/:id", auth(["admin"]), async (req, res) => {
+  try {
+    const student = await Student.findByIdAndDelete(req.params.id);
+    if (!student) return res.status(404).json({ message: "Student not found" });
+    // (Optional) also delete linked user
+    await User.deleteOne({ _id: student.userId }).catch(() => {});
+    return res.json({ message: "Student deleted" });
+  } catch (e) {
+    return res.status(500).json({ message: e.message });
+  }
 });
 
-router.delete("/students/:id", authMiddleware(["admin"]), async (req, res) => {
-  await Student.findByIdAndDelete(req.params.id);
-  res.json({ msg: "Student deleted" });
+/**
+ * TEACHERS
+ */
+router.get("/teachers", auth(["admin"]), async (_req, res) => {
+  const list = await Teacher.find();
+  return res.json(list);
 });
 
-// CRUD for Teachers
-router.post("/teachers", authMiddleware(["admin"]), async (req, res) => {
-  const teacher = new Teacher(req.body);
-  await teacher.save();
-  res.json(teacher);
+router.post("/teachers", auth(["admin"]), async (req, res) => {
+  try {
+    const { name, subject, salary, username, password } = req.body;
+
+    // Create/ensure auth user (optional)
+    const user = await ensureUser({ username, password, role: "teacher" });
+
+    const created = await Teacher.create({
+      name,
+      subject,
+      salary,
+      attendance: 0,
+      assignedCourses: subject ? [subject] : [],
+      userId: user._id,
+    });
+
+    return res.json(created);
+  } catch (e) {
+    return res.status(500).json({ message: e.message });
+  }
 });
 
-router.get("/teachers", authMiddleware(["admin"]), async (req, res) => {
-  const teachers = await Teacher.find();
-  res.json(teachers);
+router.put("/teachers/:id", auth(["admin"]), async (req, res) => {
+  try {
+    const updated = await Teacher.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ message: "Teacher not found" });
+    return res.json(updated);
+  } catch (e) {
+    return res.status(500).json({ message: e.message });
+  }
 });
 
-router.put("/teachers/:id", authMiddleware(["admin"]), async (req, res) => {
-  const updated = await Teacher.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  res.json(updated);
-});
-
-router.delete("/teachers/:id", authMiddleware(["admin"]), async (req, res) => {
-  await Teacher.findByIdAndDelete(req.params.id);
-  res.json({ msg: "Teacher deleted" });
+router.delete("/teachers/:id", auth(["admin"]), async (req, res) => {
+  try {
+    const teacher = await Teacher.findByIdAndDelete(req.params.id);
+    if (!teacher) return res.status(404).json({ message: "Teacher not found" });
+    // (Optional) also delete linked user
+    await User.deleteOne({ _id: teacher.userId }).catch(() => {});
+    return res.json({ message: "Teacher deleted" });
+  } catch (e) {
+    return res.status(500).json({ message: e.message });
+  }
 });
 
 module.exports = router;
