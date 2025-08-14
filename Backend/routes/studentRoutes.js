@@ -1,18 +1,13 @@
-const express = require('express');
+const express = require("express");
+const Student = require("../models/Student");
+const authMiddleware = require("../middleware/authMiddleware");
+
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
-const { 
-  getStudentProfile, 
-  updateStudentProfile 
-} = require('../controllers/studentController');
 
-// Protect all routes
-router.use(protect);
-
-// GET /api/students/me
-router.get('/me', getStudentProfile);
-
-// PUT /api/students/me
-router.put('/me', updateStudentProfile);
+// Get own details
+router.get("/me", authMiddleware(["student"]), async (req, res) => {
+  const student = await Student.findById(req.user.id);
+  res.json(student);
+});
 
 module.exports = router;

@@ -1,25 +1,19 @@
-const express = require("express")
+const express = require("express");
+const dotenv = require("dotenv");
+const connectDB = require("./config/db");
+const cors = require("cors");
+
+dotenv.config();
+connectDB();
+
 const app = express();
-const mongoose = require("mongoose")
+app.use(cors());
+app.use(express.json());
 
+app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
+app.use("/api/teacher", require("./routes/teacherRoutes"));
+app.use("/api/student", require("./routes/studentRoutes"));
 
-app.listen("3004",()=>{
-  console.log("Server is running on port 3004");
-})
-
-// mongoose connection
-const Mongo_URL = "mongodb://localhost:27017/CMS-DB";
-async function main(){
-  await mongoose.connect(Mongo_URL)
-}
-main().then(()=>{
-  console.log("MongoDB connected successfully");
-})
-.catch((err)=>{
-  console.error("MongoDB connection error:", err);
-})
-
-// path 
-app.get("/" , (req,res)=>{
-  res.send("Welcome to the CMS Backend");
-} )
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
