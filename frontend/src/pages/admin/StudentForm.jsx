@@ -10,7 +10,11 @@ const StudentForm = ({ student, onSubmit, onCancel }) => {
     feeStatus: 'unpaid',
     username: '',
     password: '',
+    emailId: '',
+    number: '',
   })
+  const [errors, setErrors] = useState({})
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (student) {
@@ -21,18 +25,47 @@ const StudentForm = ({ student, onSubmit, onCancel }) => {
         feeStatus: student.feeStatus || 'unpaid',
         username: '',
         password: '',
+        emailId: student.emailId || '',
+        number: student.number || '',
       })
     }
   }, [student])
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    setFormData(prev => ({ ...prev, [name]: value }))
+    // Clear error when user types
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }))
+    }
   }
 
-  const handleSubmit = (e) => {
+  const validate = () => {
+    const newErrors = {}
+    if (!formData.name.trim()) newErrors.name = 'Name is required'
+    if (!formData.rollNumber.trim()) newErrors.rollNumber = 'Roll number is required'
+    if (!formData.course.trim()) newErrors.course = 'Course is required'
+    if (!student && !formData.username.trim()) newErrors.username = 'Username is required'
+    if (!student && !formData.password.trim()) newErrors.password = 'Password is required'
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    onSubmit(formData)
+    if (!validate()) return
+    
+    setSubmitting(true)
+    try {
+      await onSubmit(formData)
+    } catch (error) {
+      console.error('Submission error:', error)
+      // Handle API errors here
+      setErrors({ submit: 'Failed to save student. Please try again.' })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -42,6 +75,7 @@ const StudentForm = ({ student, onSubmit, onCancel }) => {
         name="name"
         value={formData.name}
         onChange={handleChange}
+        error={errors.name}
         required
       />
       <Input
@@ -49,6 +83,7 @@ const StudentForm = ({ student, onSubmit, onCancel }) => {
         name="rollNumber"
         value={formData.rollNumber}
         onChange={handleChange}
+        error={errors.rollNumber}
         required
       />
       <Input
@@ -56,6 +91,7 @@ const StudentForm = ({ student, onSubmit, onCancel }) => {
         name="course"
         value={formData.course}
         onChange={handleChange}
+        error={errors.course}
         required
       />
       <div>
@@ -73,6 +109,23 @@ const StudentForm = ({ student, onSubmit, onCancel }) => {
           <option value="partial">Partial</option>
         </select>
       </div>
+      <Input
+        label="Email"
+        name="emailId"
+        type="email"
+        value={formData.emailId}
+        onChange={handleChange}
+        error={errors.emailId}
+      />
+      <Input
+        label="Phone Number"
+        name="number"
+        type="tel"
+        value={formData.number}
+        onChange={handleChange}
+        error={errors.number}
+      />
+      
       {!student && (
         <>
           <Input
@@ -80,6 +133,7 @@ const StudentForm = ({ student, onSubmit, onCancel }) => {
             name="username"
             value={formData.username}
             onChange={handleChange}
+            error={errors.username}
             required
           />
           <Input
@@ -88,15 +142,31 @@ const StudentForm = ({ student, onSubmit, onCancel }) => {
             type="password"
             value={formData.password}
             onChange={handleChange}
+            error={errors.password}
             required
           />
         </>
       )}
+      
+      {errors.submit && (
+        <div className="text-red-500 text-sm">{errors.submit}</div>
+      )}
+
       <div className="flex justify-end space-x-3 pt-4">
-        <Button variant="outline" type="button" onClick={onCancel}>
+        <Button 
+          variant="outline" 
+          type="button" 
+          onClick={onCancel}
+          disabled={submitting}
+        >
           Cancel
         </Button>
-        <Button type="submit">Save</Button>
+        <Button 
+          type="submit" 
+          disabled={submitting}
+        >
+          {submitting ? 'Saving...' : 'Save'}
+        </Button>
       </div>
     </form>
   )

@@ -69,16 +69,33 @@ const AdminStudents = () => {
 
   const handleSubmit = async (formData) => {
     try {
+      const payload = {
+        name: formData.name,
+        rollNumber: formData.rollNumber,
+        course: formData.course,
+        feeStatus: formData.feeStatus,
+        username: formData.username,
+        password: formData.password
+      };
+
       if (selectedStudent) {
-        await api.put(`/admin/students/${selectedStudent._id}`, formData)
+        // For edit, we don't send username/password if they're empty
+        const editPayload = {
+          name: formData.name,
+          rollNumber: formData.rollNumber,
+          course: formData.course,
+          feeStatus: formData.feeStatus
+        };
+        await api.put(`/admin/students/${selectedStudent._id}`, editPayload)
       } else {
-        await api.post('/admin/students', formData)
+        await api.post('/admin/students', payload)
       }
       setIsModalOpen(false)
       setSelectedStudent(null)
       fetchStudents()
     } catch (error) {
       console.error('Failed to save student:', error)
+      throw error; // Re-throw to show in form
     }
   }
 

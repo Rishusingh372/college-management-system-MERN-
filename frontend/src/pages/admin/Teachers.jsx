@@ -67,16 +67,34 @@ const AdminTeachers = () => {
 
   const handleSubmit = async (formData) => {
     try {
+      const payload = {
+        name: formData.name,
+        subject: formData.subject,
+        salary: Number(formData.salary),
+        username: formData.username,
+        password: formData.password
+      };
+
       if (selectedTeacher) {
-        await api.put(`/admin/teachers/${selectedTeacher._id}`, formData)
+        // For edit, we don't send username/password if they're empty
+        const editPayload = {
+          name: formData.name,
+          subject: formData.subject,
+          salary: Number(formData.salary),
+          email: formData.email,
+          phone: formData.phone,
+          teacherId: formData.teacherId
+        };
+        await api.put(`/admin/teachers/${selectedTeacher._id}`, editPayload)
       } else {
-        await api.post('/admin/teachers', formData)
+        await api.post('/admin/teachers', payload)
       }
       setIsModalOpen(false)
       setSelectedTeacher(null)
       fetchTeachers()
     } catch (error) {
       console.error('Failed to save teacher:', error)
+      throw error; // Re-throw to show in form
     }
   }
 

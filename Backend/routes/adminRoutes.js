@@ -39,6 +39,10 @@ router.post("/students", auth(["admin"]), async (req, res) => {
   try {
     const { name, rollNumber, course, username, password, feeStatus = "unpaid" } = req.body;
 
+    if (!name || !rollNumber || !course || !username || !password) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
     // Create/ensure auth user (optional but handy)
     const user = await ensureUser({ username, password, role: "student" });
 
@@ -48,6 +52,7 @@ router.post("/students", auth(["admin"]), async (req, res) => {
       course,
       feeStatus,
       attendance: 0,
+      password, // Store password directly in Student model
       marks: [],
       userId: user._id,
     });
@@ -92,6 +97,10 @@ router.post("/teachers", auth(["admin"]), async (req, res) => {
   try {
     const { name, subject, salary, username, password } = req.body;
 
+    if (!name || !subject || !salary || !username || !password) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
     // Create/ensure auth user (optional)
     const user = await ensureUser({ username, password, role: "teacher" });
 
@@ -99,6 +108,7 @@ router.post("/teachers", auth(["admin"]), async (req, res) => {
       name,
       subject,
       salary,
+      password, // Store password directly in Teacher model
       attendance: 0,
       assignedCourses: subject ? [subject] : [],
       userId: user._id,
