@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
 import Table from '../../components/UI/Table'
-import Modal from '../../components/UI/Modal'
-import StudentMarksForm from './StudentMarksForm'
+import Button from '../../components/UI/Button'
+import { useAuth } from '../../context/AuthContext'
 import api from '../../api'
 
 const TeacherStudents = () => {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedStudent, setSelectedStudent] = useState(null)
   const { user } = useAuth()
 
   const columns = [
@@ -16,54 +14,19 @@ const TeacherStudents = () => {
     { header: 'Roll Number', accessor: 'rollNumber' },
     { header: 'Course', accessor: 'course' },
     { header: 'Attendance', accessor: 'attendance' },
-    {
-      header: 'Marks',
-      accessor: 'marks',
-      Cell: ({ value }) => {
-        const subjectMark = value?.find((m) => m.subject === user.subject)
-        return subjectMark ? `${subjectMark.score}%` : 'N/A'
-      },
-    },
-    {
-      header: 'Actions',
-      accessor: '_id',
-      Cell: ({ row }) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setSelectedStudent(row.original)
-            setIsModalOpen(true)
-          }}
-        >
-          Update Marks
-        </Button>
-      ),
-    },
+    { header: 'Fee Status', accessor: 'feeStatus' },
+    { header: 'Email', accessor: 'emailId' },
   ]
 
   const fetchStudents = async () => {
     try {
-      const response = await api.get('/admin/students') // Or create a specific endpoint
-      setStudents(response.data)
+      // For now, fetch all students since the teacher-student assignment isn't fully implemented
+      const response = await api.get('/admin/students')
+      setStudents(response.data || [])
     } catch (error) {
       console.error('Failed to fetch students:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleSubmit = async (formData) => {
-    try {
-      await api.put(`/teacher/students/${selectedStudent._id}/marks`, {
-        subject: user.subject,
-        score: formData.score,
-      })
-      setIsModalOpen(false)
-      setSelectedStudent(null)
-      fetchStudents()
-    } catch (error) {
-      console.error('Failed to update marks:', error)
     }
   }
 
@@ -74,33 +37,20 @@ const TeacherStudents = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Students</h1>
+        <h1 className="text-2xl font-bold text-gray-900">My Students</h1>
       </div>
 
       {loading ? (
-        <div>Loading...</div>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      ) : students.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">No students found.</p>
+        </div>
       ) : (
         <Table columns={columns} data={students} />
       )}
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false)
-          setSelectedStudent(null)
-        }}
-        title="Update Student Marks"
-      >
-        <StudentMarksForm
-          student={selectedStudent}
-          subject={user?.subject}
-          onSubmit={handleSubmit}
-          onCancel={() => {
-            setIsModalOpen(false)
-            setSelectedStudent(null)
-          }}
-        />
-      </Modal>
     </div>
   )
 }

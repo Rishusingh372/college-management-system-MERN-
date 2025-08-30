@@ -11,7 +11,9 @@ const StudentDashboard = () => {
   useEffect(() => {
     const fetchStudent = async () => {
       try {
-        const response = await api.get(`/students/${user.profileId}`)
+        // Use mock student ID for testing if no profileId is available
+        const studentId = user.profileId || "507f1f77bcf86cd799439011";
+        const response = await api.get(`/api/students/${studentId}`)
         setStudent(response.data)
       } catch (error) {
         console.error('Failed to fetch student data:', error)
